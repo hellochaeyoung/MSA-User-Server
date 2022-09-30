@@ -2,6 +2,6 @@ spring:
   cloud:
     config:
       uri: http://127.0.0.1:8888
-      name: config-service
+      name: user-service
 #  profiles:
-#    active: dev
+#    active: dev (dev로 설정하면 user-service-dev 파일을 읽게된다!, 지금은 설정 안했으니 default)
