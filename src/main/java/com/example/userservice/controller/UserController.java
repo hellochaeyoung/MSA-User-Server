@@ -1,11 +1,13 @@
 package com.example.userservice.controller;
 
+import com.example.userservice.dto.TokenDto;
 import com.example.userservice.dto.UserDto;
 import com.example.userservice.jpa.UserEntity;
 import com.example.userservice.service.UserService;
 import com.example.userservice.vo.Greeting;
 import com.example.userservice.vo.RequestUser;
 import com.example.userservice.vo.ResponseUser;
+import java.nio.file.AccessDeniedException;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -57,6 +60,23 @@ public class UserController {
         ResponseUser responseUser = mapper.map(dto, ResponseUser.class);
 
         return new ResponseEntity(responseUser, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestHeader(value = "access_token") String accessToken,
+                                     @RequestHeader(value = "refresh_token") String refreshToken,
+                                     @RequestBody TokenDto dto)
+        throws AccessDeniedException {
+
+        String userId = dto.getUserId();
+        System.out.println(userId);
+        TokenDto result = userService.refresh(TokenDto.builder()
+                                                .userId(userId)
+                                                .accessToken(accessToken)
+                                                .refreshToken(refreshToken)
+                                                .build());
+
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
     @GetMapping("/users")

@@ -1,9 +1,13 @@
 package com.example.userservice.security;
 
 import com.example.userservice.dto.UserDto;
+import com.example.userservice.exp.codes.CommonErrorCode;
+import com.example.userservice.exp.exceptions.WrongLoginInfoException;
 import com.example.userservice.service.UserService;
 import com.example.userservice.vo.RequestLogin;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import java.io.IOException;
@@ -27,21 +31,26 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Slf4j
 public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
-    private UserService userService;
-    private Environment env;
+    private final UserService userService;
+    private final Environment env;
+
+    private final TokenProvider tokenProvider;
 
     public AuthenticationFilter(AuthenticationManager authenticationManager,
                                 UserService userService,
-                                Environment env) {
+                                Environment env,
+                                TokenProvider tokenProvider) {
         super(authenticationManager);
         this.userService = userService;
         this.env = env;
+        this.tokenProvider = tokenProvider;
     }
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request,
         HttpServletResponse response) throws AuthenticationException {
 
+        log.info("Call AuthenticationFilter attemptAuthentication.");
         // request에서 로그인 정보 받아와서 인증하여 이메일과 패스워드 일치하는지 판단
         try {
             RequestLogin creds = new ObjectMapper().readValue(request.getInputStream(), RequestLogin.class);
@@ -52,7 +61,7 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
             );
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException();
         }
     }
 
@@ -62,18 +71,30 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
                         HttpServletResponse response, FilterChain chain, Authentication authResult)
                         throws IOException, ServletException {
 
+        log.info("Call AuthenticationFilter successfulAuthentication");
         String userName = ((User)authResult.getPrincipal()).getUsername();
         UserDto userDetails = userService.getUserDetailsByEmail(userName);
 
         // token 생성
-        String token = Jwts.builder()
-            .setSubject(userDetails.getUserId())
-            .setExpiration(new Date(System.currentTimeMillis() +
-                Long.parseLong(env.getProperty("token.expiration_time"))))
-            .signWith(SignatureAlgorithm.HS512, env.getProperty("token.secret"))
-            .compact();
+        String accessToken = tokenProvider.createAccessToken(userDetails.getUserId());
+        String refreshToken = tokenProvider.createRefreshToken();
 
-        response.addHeader("token", token);
-        response.addHeader("userId", userDetails.getUserId());
+        // refresh token 디비에 저장
+        userService.updateRefreshToken(userDetails.getUserId(), refreshToken);
+
+        response.addHeader("access_token", accessToken);
+        response.addHeader("refresh_token", refreshToken);
+        response.addHeader("userId", userDetails.getUserId()); // 추후에 삭제
     }
+
+    @Override
+    protected void unsuccessfulAuthentication(HttpServletRequest request,
+        HttpServletResponse response, AuthenticationException failed)
+        throws IOException, ServletException {
+        log.info("call unsuccessfulAuthentication");
+
+        throw new WrongLoginInfoException(CommonErrorCode.BAD_REQUEST_LOGIN.getMessage(),
+            CommonErrorCode.BAD_REQUEST_LOGIN);
+    }
+
 }

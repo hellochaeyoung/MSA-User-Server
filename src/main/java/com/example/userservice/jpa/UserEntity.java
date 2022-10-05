@@ -29,4 +29,7 @@ public class UserEntity {
     @Column(nullable = false, unique = true)
     private String encryptedPwd;
 
+    @Column(nullable = true, unique = true)
+    private String refreshToken;
+
 }
