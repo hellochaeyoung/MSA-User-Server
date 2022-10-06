@@ -79,6 +79,12 @@ public class UserController {
         return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
+    /*@PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody TokenDto dto) {
+        userService.updateRefreshToken(dto.getUserId(), "");
+        return new ResponseEntity<>("로그아웃 되었습니다.", HttpStatus.OK);
+    }*/
+
     @GetMapping("/users")
     public ResponseEntity<?> getUsers() {
         Iterable<UserEntity> userList = userService.getUserByAll();
