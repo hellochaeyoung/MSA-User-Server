@@ -1,6 +1,8 @@
 package com.example.userservice.security;
 
+import com.example.userservice.exp.filter.ExceptionHandlerFilter;
 import com.example.userservice.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import javax.servlet.Filter;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,8 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
             .hasIpAddress("127.0.0.1")
             .and()
             .addFilter(getAuthenticationFilter());
+
+        http.addFilterBefore(getExceptionHandlerFilter(), AuthenticationFilter.class);
     }
 
     private AuthenticationFilter getAuthenticationFilter() throws Exception {
@@ -49,6 +53,11 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
         //authenticationFilter.setAuthenticationManager(authenticationManager());
 
         return authenticationFilter;
+    }
+
+    private ExceptionHandlerFilter getExceptionHandlerFilter() throws Exception {
+        log.info("Call WebSecurity getExceptionHandlerFilter");
+        return new ExceptionHandlerFilter(new ObjectMapper());
     }
 
     // db에서 이메일에 해당하는 패스워드 조회 <- userDetailsService에서 담당
