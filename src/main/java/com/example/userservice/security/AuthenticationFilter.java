@@ -6,23 +6,16 @@ import com.example.userservice.exp.exceptions.WrongLoginInfoException;
 import com.example.userservice.service.UserService;
 import com.example.userservice.vo.RequestLogin;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.rsocket.RSocketSecurity.JwtSpec;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
@@ -60,6 +53,9 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
                 )
             );
 
+        } catch (AuthenticationException e) {
+          throw new WrongLoginInfoException(CommonErrorCode.BAD_REQUEST_LOGIN.getMessage(),
+              CommonErrorCode.BAD_REQUEST_LOGIN);
         } catch (IOException e) {
             throw new RuntimeException();
         }
@@ -85,16 +81,6 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
         response.addHeader("access_token", accessToken);
         response.addHeader("refresh_token", refreshToken);
         response.addHeader("userId", userDetails.getUserId()); // 추후에 삭제
-    }
-
-    @Override
-    protected void unsuccessfulAuthentication(HttpServletRequest request,
-        HttpServletResponse response, AuthenticationException failed)
-        throws IOException, ServletException {
-        log.info("call unsuccessfulAuthentication");
-
-        throw new WrongLoginInfoException(CommonErrorCode.BAD_REQUEST_LOGIN.getMessage(),
-            CommonErrorCode.BAD_REQUEST_LOGIN);
     }
 
 }
